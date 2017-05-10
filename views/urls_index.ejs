@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Tiny App</title>
+  </head>
+  <body>
+    <header>
+    <% include ./partials/_header %>
+    </header>
+    <h1>Tiny App</h1>
+
+    <ul>
+      <% for(var item in urls) { %>
+        <li>
+          <p><%= item %> =======> <%= urls[item] %></p>
+          <form action='/urls/<%= item %>'>
+            <input type="submit" value='Edit'>
+          </form>
+          <form action='/urls/<%= item %>/delete' method='post'>
+            <button>Delete</button>
+          </form>
+        </li>
+      <% } %>
+    </ul>
+
+  </body>
+</html>

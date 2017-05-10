@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Tiny App</title>
+  </head>
+  <body>
+    <header>
+    <% include ./partials/_header %>
+    </header>
+    <h2>Short URL: <%= shortURL %></h2>
+    <h3>Update this short URL</h3>
+    <form action='/urls/<%= shortURL %>' method='post'>
+      <input id='shortURL' name='shortURL' value='<%= shortURL %>'>
+      <button>Update</button>
+    </form>
+
+  </body>
+</html>
