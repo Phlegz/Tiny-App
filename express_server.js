@@ -12,6 +12,7 @@ function generateRandomString() {
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
+app.use(express.static(__dirname + '/public'));
 app.set('view engine', 'ejs');
 
 let urlDatabase = {
@@ -72,7 +73,6 @@ app.get('/u/:shortURL', (req, res) => {
 app.post('/urls', (req, res) => {
   let id = generateRandomString();
   urlDatabase[id]= req.body.longURL;
-  console.log(urlDatabase);
   res.redirect(`/urls/${id}`);
 });
 
@@ -89,6 +89,14 @@ app.post('/login', (req, res) => {
 app.post('/logout', (req, res) => {
   res.clearCookie('username');
   res.redirect('/urls');
+});
+
+app.get('/login', (req, res) => {
+  res.render('login')
+});
+
+app.get('/register', (req, res) => {
+  res.render('register')
 });
 
 app.listen(PORT, () => {
