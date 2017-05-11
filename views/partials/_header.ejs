@@ -1,8 +1,11 @@
-<p>
-  Login here:
-</p>
-<form action='/login' method='post'>
-  <input name='username'>
-  <input type='submit' value="Submit">
-</form>
-<h1>Current logged in user: <%=username %> </h1>
+<% if (username) { %>
+  <h1>Current logged in user: <%=username %> </h1>
+  <form action='/logout' method='post'>
+    <input type='submit' value="Logout">
+  </form>
+<% } else { %>
+  <form action='/login' method='post'>
+    <input name='username'>
+    <input type='submit' value="Login">
+  </form>
+<% } %>
