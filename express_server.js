@@ -1,6 +1,7 @@
 'use strict'
 const express = require('express');
 const app = express();
+const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const PORT = process.env.PORT || 8080;
 
@@ -10,6 +11,7 @@ function generateRandomString() {
 };
 
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 app.set('view engine', 'ejs');
 
 let urlDatabase = {
@@ -22,17 +24,26 @@ app.get('/urls.json', (req, res) => {
 });
 
 app.get('/urls', (req,res) => {
-  let templateVars = {urls: urlDatabase};
+  let templateVars = {
+    urls: urlDatabase,
+    username: req.cookies['username']
+  };
   res.render('urls_index', templateVars);
 });
 
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  let templateVars = {
+    username: req.cookies['username']
+  };
+  res.render('urls_new', templateVars);
 });
 
 app.get('/urls/:id', (req, res) => {
   if (urlDatabase.hasOwnProperty(req.params.id)) {
-    let templateVars = {shortURL: req.params.id};
+    let templateVars = {
+      shortURL: req.params.id,
+      username: req.cookies['username']
+    };
     res.render('urls_show', templateVars);
   } else {
     res.status(404);
@@ -52,8 +63,10 @@ app.get('/u/:shortURL', (req, res) => {
   if (urlDatabase.hasOwnProperty(req.params.shortURL)) {
     let longURL = urlDatabase[req.params.shortURL];
     res.redirect(longURL);
+  } else {
+
+    res.send('the url does not exist');
   }
-  else { res.send('the url does not exist'); }
 });
 
 app.post('/urls', (req, res) => {
@@ -66,6 +79,11 @@ app.post('/urls', (req, res) => {
 app.post('/urls/:id/delete', (req, res) => {
   delete urlDatabase[req.params.id];
   res.redirect('/urls');
+});
+
+app.post('/login', (req, res) => {
+  res.cookie('username',req.body.username);
+  res.redirect('/urls')
 });
 
 app.listen(PORT, () => {
