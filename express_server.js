@@ -34,69 +34,81 @@ const urlDatabase = {
     }
 };
 
+//=================================***** Helper functions *****======================================
+
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 7);
 };
 
-function searchUsersByEmail(obj,email) {
-  for (let prop in obj) {
-    if (obj[prop].email == email) {
-      return obj[prop];
+function searchUsersByEmail(users, email) {
+  for (const user in users) {
+    if (users[user].email === email) {
+      return users[user];
     }
   }
   return false;
 };
 
-function urlsForUser(obj, id) {
-  let urls = {};
-  for (let prop in obj) {
-    if (obj[prop].user_id == id) {
-      urls[prop] = Object.assign({}, obj[prop]);
+function urlsForUser(urlDatabase, userId) {
+  const urls = {};
+  for (const key in urlDatabase) {
+    if (urlDatabase[key].user_id === userId) {
+      urls[key] = urlDatabase[key];
     }
   }
   return urls;
 }
+//==============================================================================================
+
+
+//===============================***** Start the express app ******=============================
+const app = express();
+//==============================================================================================
+
+
+//=================================****** Configure ejs ******==================================
+app.set('view engine', 'ejs');
+//==============================================================================================
+
+
+//===============================******* Express middlewares *****==============================
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
 app.use('/urls', function (req, res, next) {
   if (!req.cookies['user_id']) {
-    res.redirect('/login')
+    //TODO render to error page
+    res.redirect('/login');
   } else {
     next();
   }
 })
+//=============================================================================================
 
-//=================================****** configure ejs ******====================================
 
-app.set('view engine', 'ejs');
+//=================================***** Routes *****==========================================
 
-//=================================***** Routes *****=============================================
+app.route('/urls')
+  .get((req,res) => {
+    let urls = urlsForUser(urlDatabase, req.cookies['user_id'])
+    let templateVars = {
+      urls,
+      user: users[req.cookies['user_id']]
+    };
+    res.render('urls_index', templateVars);
+  })
+  //Create a new url pair(short and long) and save it to the urlDatabase
+  .post((req, res) => {
+     let id = generateRandomString();
+     urlDatabase[id]= {
+       'long_url': req.body.longURL,
+       'user_id': req.cookies['user_id']
+     };
+     res.redirect(`/urls/${id}`);
+  });
 
-app.get('/urls.json', (req, res) => {
-  res.json(urlDatabase);
-});
-
-app.get('/urls', (req,res) => {
-  let urls = urlsForUser(urlDatabase, req.cookies['user_id'])
-  let templateVars = {
-    urls,
-    user: users[req.cookies['user_id']]
-  };
-  res.render('urls_index', templateVars);
-});
-
-//Create a new url pair(short and long) and save it to the urlDatabase
-app.post('/urls', (req, res) => {
- let id = generateRandomString();
- urlDatabase[id]= {
-   'long_url': req.body.longURL,
-   'user_id': req.cookies['user_id']
- };
- res.redirect(`/urls/${id}`);
-});
-
+//TODO check res.local in the middleware to make it DRY
 app.get('/urls/new', (req, res) => {
   let templateVars = {
     user: users[req.cookies['user_id']]
@@ -104,41 +116,45 @@ app.get('/urls/new', (req, res) => {
   res.render('urls_new', templateVars);
 });
 
-app.get('/urls/:id', (req, res) => {
-  if (req.params.id in urlDatabase) {
-    if(urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
-      let templateVars = {
-        shortURL: req.params.id,
-        longURL: urlDatabase[req.params.id].long_url,
-        user: users[req.cookies['user_id']]
-      };
-      res.render('urls_show', templateVars);
-    } else {
-      res.send('You are not allowed to edit a url that you have not created!');
-      return;
-    }
-  } else {
-    res.status(404);
-    res.send('Requested short URL was not found');
-  }
-});
 
-app.post('/urls/:id', (req, res) => {
-  if (req.body.longURL !== urlDatabase[req.params.id].long_url) {
-    urlDatabase[req.params.id] = {
-      long_url: req.body.longURL,
-      user_id: req.cookies['user_id']
-    };
-  }
-  res.redirect('/urls');
-});
+app.route('/urls/:id')
+//TODO guard statemenet, just protect from weird situation on the top
+//check nex({status:404, message:'not found'})
+// anything passed to next is considered error and then we use a error handling middleware(app.use)
+  .get((req, res) => {
+    if (req.params.id in urlDatabase) {
+      if (urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
+        let templateVars = {
+          shortURL: req.params.id,
+          longURL: urlDatabase[req.params.id].long_url,
+          user: users[req.cookies['user_id']]
+        };
+        res.render('urls_show', templateVars);
+      } else {
+          res.send('You are not allowed to edit a url that you have not created!');
+      }
+    } else {
+        res.status(404);
+        res.send('Requested short URL was not found');
+    }
+  })
+  .post((req, res) => {
+    if (req.body.longURL !== urlDatabase[req.params.id].long_url) {
+      //TODO dont reassign the whole obj
+      urlDatabase[req.params.id] = {
+        long_url: req.body.longURL,
+        user_id: req.cookies['user_id']
+      };
+    }
+    res.redirect('/urls');
+  });
 
 app.get('/u/:shortURL', (req, res) => {
   if (req.params.shortURL in urlDatabase) {
     let longURL = urlDatabase[req.params.shortURL].long_url;
     res.redirect(longURL);
   } else {
-    res.send('the url does not exist');
+      res.send('the url does not exist');
   }
 });
 
@@ -205,6 +221,7 @@ app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
   res.redirect('/login');
 });
+//=========================================================================================================
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
