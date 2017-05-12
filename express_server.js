@@ -1,6 +1,6 @@
-'use strict'
+
+var cookieSession = require('cookie-session');
 const express = require('express');
-const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const PORT = process.env.PORT || 8080;
@@ -73,11 +73,15 @@ app.set('view engine', 'ejs');
 
 //===============================******* Express middlewares *****==============================
 
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2'],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}))
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
 app.use('/urls', function (req, res, next) {
-  if (!req.cookies['user_id']) {
+  if (!req.session.user_id) {
     //TODO render to error page
     res.redirect('/login');
   } else {
@@ -91,10 +95,10 @@ app.use('/urls', function (req, res, next) {
 
 app.route('/urls')
   .get((req,res) => {
-    let urls = urlsForUser(urlDatabase, req.cookies['user_id'])
+    let urls = urlsForUser(urlDatabase, req.session.user_id)
     let templateVars = {
       urls,
-      user: users[req.cookies['user_id']]
+      user: users[req.session.user_id]
     };
     res.render('urls_index', templateVars);
   })
@@ -103,7 +107,7 @@ app.route('/urls')
      let id = generateRandomString();
      urlDatabase[id]= {
        'long_url': req.body.longURL,
-       'user_id': req.cookies['user_id']
+       'user_id': req.session.user_id
      };
      res.redirect(`/urls/${id}`);
   });
@@ -111,7 +115,7 @@ app.route('/urls')
 //TODO check res.local in the middleware to make it DRY
 app.get('/urls/new', (req, res) => {
   let templateVars = {
-    user: users[req.cookies['user_id']]
+    user: users[req.session.user_id]
   };
   res.render('urls_new', templateVars);
 });
@@ -123,11 +127,11 @@ app.route('/urls/:id')
 // anything passed to next is considered error and then we use a error handling middleware(app.use)
   .get((req, res) => {
     if (req.params.id in urlDatabase) {
-      if (urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
+      if (urlDatabase[req.params.id].user_id == req.session.user_id) {
         let templateVars = {
           shortURL: req.params.id,
           longURL: urlDatabase[req.params.id].long_url,
-          user: users[req.cookies['user_id']]
+          user: users[req.session.user_id]
         };
         res.render('urls_show', templateVars);
       } else {
@@ -143,7 +147,7 @@ app.route('/urls/:id')
       //TODO dont reassign the whole obj
       urlDatabase[req.params.id] = {
         long_url: req.body.longURL,
-        user_id: req.cookies['user_id']
+        user_id: req.session.user_id
       };
     }
     res.redirect('/urls');
@@ -159,7 +163,7 @@ app.get('/u/:shortURL', (req, res) => {
 });
 
 app.post('/urls/:id/delete', (req, res) => {
-  if (urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
+  if (urlDatabase[req.params.id].user_id == req.session.user_id) {
     delete urlDatabase[req.params.id];
     res.redirect('/urls');
   }
@@ -185,7 +189,8 @@ app.route('/register')
           name: req.body.name,
           password: hashed_password
         };
-        res.cookie('user_id', id);
+        req.session.user_id = id
+        // res.cookie('user_id', id);
         res.redirect('/urls');
       } else {
           res.status(400)
@@ -205,7 +210,8 @@ app.route('/login')
     const user = searchUsersByEmail(users,req.body.email)
     if (user) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
-        res.cookie('user_id', user.id);
+        req.session.user_id = user.id
+        // res.cookie('user_id', user.id);
         res.redirect('/urls');
         return;
       } else {
@@ -218,7 +224,8 @@ app.route('/login')
   });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  // res.clearCookie('user_id');
+  req.session = null
   res.redirect('/login');
 });
 //=========================================================================================================
