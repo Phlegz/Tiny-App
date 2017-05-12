@@ -15,12 +15,23 @@ let users = {
     id: "user2RandomID",
     email: "user2@example.com",
     password: "pass2"
-  }
+  },
+  "12345": {
+     id: "12345",
+     email: "user2@example.com",
+     password: "pass2"
+   }
 };
 
 let urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+   "b2xVn2":{
+      'long_url': "http://www.lighthouselabs.ca",
+      'user_id': '12345'
+    },
+   "9sm5xK": {
+     'long_url':"http://www.google.com",
+     'user_id': '56789'
+    }
 };
 
 function generateRandomString() {
@@ -87,18 +98,21 @@ app.get('/urls/:id', (req, res) => {
 
 app.post('/urls/:id', (req, res) => {
   if (req.body.shortURL !== req.params.id) {
-    urlDatabase[req.body.shortURL] = urlDatabase[req.params.id];
+    urlDatabase[req.body.shortURL] = {
+      long_url: urlDatabase[req.params.id].long_url,
+      user_id: req.cookies['user_id']
+    };
     delete urlDatabase[req.params.id];
   }
   res.redirect('/urls');
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  if (urlDatabase.hasOwnProperty(req.params.shortURL)) {
-    let longURL = urlDatabase[req.params.shortURL];
+  //TODO change the next line of code to if (prop in obj)
+  if (req.params.shortURL in urlDatabase) {
+    let longURL = urlDatabase[req.params.shortURL].long_url;
     res.redirect(longURL);
   } else {
-
     res.send('the url does not exist');
   }
 });
@@ -106,7 +120,10 @@ app.get('/u/:shortURL', (req, res) => {
  //Create a new url pair(short and long) and save it to the urlDatabase
 app.post('/urls', (req, res) => {
   let id = generateRandomString();
-  urlDatabase[id]= req.body.longURL;
+  urlDatabase[id]= {
+    'long_url': req.body.longURL,
+    'user_id': req.cookies['user_id']
+  };
   res.redirect(`/urls/${id}`);
 });
 
