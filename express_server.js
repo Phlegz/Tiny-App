@@ -39,7 +39,7 @@ function generateRandomString() {
 };
 
 function searchUsersByEmail(obj,email) {
-  for (var prop in obj) {
+  for (let prop in obj) {
     if (obj[prop].email == email) {
       return obj[prop];
     }
@@ -49,7 +49,7 @@ function searchUsersByEmail(obj,email) {
 
 function urlsForUser(obj, id) {
   let urls = {};
-  for (var prop in obj) {
+  for (let prop in obj) {
     if (obj[prop].user_id == id) {
       urls[prop] = Object.assign({}, obj[prop]);
     }
@@ -80,7 +80,7 @@ app.get('/urls.json', (req, res) => {
 
 app.get('/urls', (req,res) => {
   let urls = urlsForUser(urlDatabase, req.cookies['user_id'])
-  var templateVars = {
+  let templateVars = {
     urls,
     user: users[req.cookies['user_id']]
   };
@@ -109,6 +109,7 @@ app.get('/urls/:id', (req, res) => {
     if(urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
       let templateVars = {
         shortURL: req.params.id,
+        longURL: urlDatabase[req.params.id].long_url,
         user: users[req.cookies['user_id']]
       };
       res.render('urls_show', templateVars);
@@ -123,18 +124,16 @@ app.get('/urls/:id', (req, res) => {
 });
 
 app.post('/urls/:id', (req, res) => {
-  if (req.body.shortURL !== req.params.id) {
-    urlDatabase[req.body.shortURL] = {
-      long_url: urlDatabase[req.params.id].long_url,
+  if (req.body.longURL !== urlDatabase[req.params.id].long_url) {
+    urlDatabase[req.params.id] = {
+      long_url: req.body.longURL,
       user_id: req.cookies['user_id']
     };
-    delete urlDatabase[req.params.id];
   }
   res.redirect('/urls');
 });
 
 app.get('/u/:shortURL', (req, res) => {
-  //TODO change the next line of code to if (prop in obj)
   if (req.params.shortURL in urlDatabase) {
     let longURL = urlDatabase[req.params.shortURL].long_url;
     res.redirect(longURL);

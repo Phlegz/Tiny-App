@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
+
   <head>
-    <meta charset="utf-8">
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>Tiny App</title>
   </head>
+
   <body>
     <header>
     <% include ./partials/_header %>
@@ -11,9 +14,9 @@
     <h2>Short URL: <%= shortURL %></h2>
     <h3>Update this short URL</h3>
     <form action='/urls/<%= shortURL %>' method='post'>
-      <input id='shortURL' name='shortURL' value='<%= shortURL %>'>
-      <input type="submit" value='Update'>
+      <input id='longURL' name='longURL' value='<%= longURL %>'>
+      <input type='submit' value='Update'>
     </form>
-
   </body>
+
 </html>
