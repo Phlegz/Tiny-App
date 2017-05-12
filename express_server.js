@@ -85,11 +85,16 @@ app.get('/urls/new', (req, res) => {
 
 app.get('/urls/:id', (req, res) => {
   if (req.params.id in urlDatabase) {
-    let templateVars = {
-      shortURL: req.params.id,
-      user: users[req.cookies['user_id']]
-    };
-    res.render('urls_show', templateVars);
+    if(urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
+      let templateVars = {
+        shortURL: req.params.id,
+        user: users[req.cookies['user_id']]
+      };
+      res.render('urls_show', templateVars);
+    } else {
+      res.send('You are not allowed to edit a url that you have not created!');
+      return;
+    }
   } else {
     res.status(404);
     res.send('Requested short URL was not found');
@@ -128,8 +133,13 @@ app.post('/urls', (req, res) => {
 });
 
 app.post('/urls/:id/delete', (req, res) => {
-  delete urlDatabase[req.params.id];
-  res.redirect('/urls');
+  if (urlDatabase[req.params.id].user_id == req.cookies['user_id']) {
+    delete urlDatabase[req.params.id];
+    res.redirect('/urls');
+  }
+  else {
+    res.send('You are not allowed to delete a url that you have not created!')
+  }
 });
 
 app.get('/register', (req, res) => {
