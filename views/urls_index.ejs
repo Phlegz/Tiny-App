@@ -12,6 +12,9 @@
     <% include ./partials/_header %>
     </header>
     <h1>Tiny App</h1>
+    <form action='/urls/new'>
+      <input type='submit' value="Create a new link">
+    </form>
     <ul>
       <% for(var item in urls) { %>
         <li>
