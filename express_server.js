@@ -1,11 +1,11 @@
 'use strict'
 const express = require('express');
-const app = express();
 const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
+const bcrypt = require('bcrypt');
 const PORT = process.env.PORT || 8080;
 
-let users = {
+const users = {
   "user1RandomID": {
     id: "user1RandomID",
     email: "user1@example.com",
@@ -23,7 +23,7 @@ let users = {
    }
 };
 
-let urlDatabase = {
+const urlDatabase = {
    "b2xVn2":{
       'long_url': "http://www.lighthouselabs.ca",
       'user_id': '12345'
@@ -152,52 +152,54 @@ app.post('/urls/:id/delete', (req, res) => {
   }
 });
 
-app.get('/register', (req, res) => {
-  res.render('register')
-});
-
-app.post('/register', (req, res) => {
-  const id = generateRandomString();
-  const user = searchUsersByEmail(users, req.body.email);
-  if (req.body.email && req.body.name && req.body.password) {
-    if (!user) {
-    users[id] = {
-      id: id,
-      email: req.body.email,
-      name: req.body.name,
-      password: req.body.password
-    };
-    res.cookie('user_id',id);
-    res.redirect('/urls');
+app.route('/register')
+  .get((req, res) => {
+    res.render('register')
+  })
+  .post((req, res) => {
+    if (req.body.email && req.body.name && req.body.password) {
+      const user = searchUsersByEmail(users, req.body.email);
+      if (!user) {
+        const password = req.body.password;
+        const hashed_password = bcrypt.hashSync(password, 10);
+        const id = generateRandomString();
+        users[id] = {
+          id: id,
+          email: req.body.email,
+          name: req.body.name,
+          password: hashed_password
+        };
+        res.cookie('user_id', id);
+        res.redirect('/urls');
+      } else {
+          res.status(400)
+          res.send('user already exist')
+          return;
+      }
     } else {
-      res.status(400)
-      res.send('user already exist')
-      return;
+        res.redirect('/register');
     }
-  } else {
-      res.redirect('/register');
-  }
-});
+  });
 
-app.get('/login', (req, res) => {
-  res.render('login');
-});
-
-app.post('/login', (req, res) => {
-  const user = searchUsersByEmail(users,req.body.email)
-  if (user) {
-    if (user.password == req.body.password) {
-      res.cookie('user_id', user.id);
-      res.redirect('/urls');
-      return;
+app.route('/login')
+  .get((req, res) => {
+    res.render('login');
+  })
+  .post((req, res) => {
+    const user = searchUsersByEmail(users,req.body.email)
+    if (user) {
+      if (bcrypt.compareSync(req.body.password, user.password)) {
+        res.cookie('user_id', user.id);
+        res.redirect('/urls');
+        return;
+      } else {
+        res.status(403);
+        res.send('incorrect credentials')
+      }
     } else {
-      res.status(403);
-      res.send('incorrect credentials')
+        res.redirect('/register');
     }
-  } else {
-      res.redirect('/register');
-  }
-});
+  });
 
 app.post('/logout', (req, res) => {
   res.clearCookie('user_id');
