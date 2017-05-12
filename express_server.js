@@ -27,6 +27,15 @@ function generateRandomString() {
   return Math.random().toString(36).substr(2, 7);
 };
 
+function searchUsersByEmail(obj,email) {
+  for (var prop in obj) {
+    if (obj[prop].email == email) {
+      return obj[prop];
+    }
+  }
+  return false;
+};
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
@@ -44,14 +53,14 @@ app.get('/urls.json', (req, res) => {
 app.get('/urls', (req,res) => {
   let templateVars = {
     urls: urlDatabase,
-    username: users[req.cookies['user_id']].email
+    user: users[req.cookies['user_id']]
   };
   res.render('urls_index', templateVars);
 });
 
 app.get('/urls/new', (req, res) => {
   let templateVars = {
-    username: users[req.cookies['user_id']].email
+    user: users[req.cookies['user_id']]
   };
   res.render('urls_new', templateVars);
 });
@@ -60,7 +69,7 @@ app.get('/urls/:id', (req, res) => {
   if (req.params.id in urlDatabase) {
     let templateVars = {
       shortURL: req.params.id,
-      username: users[req.cookies['user_id']].email
+      user: users[req.cookies['user_id']]
     };
     res.render('urls_show', templateVars);
   } else {
@@ -104,15 +113,23 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/register', (req, res) => {
-  let id = generateRandomString();
+  const id = generateRandomString();
+  const user = searchUsersByEmail(users, req.body.email);
   if (req.body.email && req.body.name && req.body.password) {
+    if (!user) {
     users[id] = {
+      id: id,
       email: req.body.email,
       name: req.body.name,
       password: req.body.password
     };
     res.cookie('user_id',id);
     res.redirect('/urls');
+    } else {
+      res.status(400)
+      res.send('user already exist')
+      return;
+    }
   } else {
       res.redirect('/register');
   }
@@ -123,14 +140,19 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  for (var user in users) {
-    if (users[user].email == req.body.email && users[user].password == req.body.password) {
-      res.cookie('user_id', user);
+  const user = searchUsersByEmail(users,req.body.email)
+  if (user) {
+    if (user.password == req.body.password) {
+      res.cookie('user_id', user.id);
       res.redirect('/urls');
       return;
+    } else {
+      res.status(403);
+      res.send('incorrect credentials')
     }
+  } else {
+      res.redirect('/register');
   }
-  res.redirect('/register');
 });
 
 app.post('/logout', (req, res) => {
