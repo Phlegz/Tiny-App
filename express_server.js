@@ -18,7 +18,7 @@ let users = {
   },
   "12345": {
      id: "12345",
-     email: "user2@example.com",
+     email: "user3@example.com",
      password: "pass2"
    }
 };
@@ -30,7 +30,7 @@ let urlDatabase = {
     },
    "9sm5xK": {
      'long_url':"http://www.google.com",
-     'user_id': '56789'
+     'user_id': 'user2RandomID'
     }
 };
 
@@ -47,10 +47,20 @@ function searchUsersByEmail(obj,email) {
   return false;
 };
 
+function urlsForUser(obj, id) {
+  let urls = {};
+  for (var prop in obj) {
+    if (obj[prop].user_id == id) {
+      urls[prop] = Object.assign({}, obj[prop]);
+    }
+  }
+  return urls;
+}
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
-app.use('/urls/new', function (req, res, next) {
+app.use('/urls', function (req, res, next) {
   if (!req.cookies['user_id']) {
     res.redirect('/login')
   } else {
@@ -69,11 +79,22 @@ app.get('/urls.json', (req, res) => {
 });
 
 app.get('/urls', (req,res) => {
-  let templateVars = {
-    urls: urlDatabase,
+  let urls = urlsForUser(urlDatabase, req.cookies['user_id'])
+  var templateVars = {
+    urls,
     user: users[req.cookies['user_id']]
   };
   res.render('urls_index', templateVars);
+});
+
+//Create a new url pair(short and long) and save it to the urlDatabase
+app.post('/urls', (req, res) => {
+ let id = generateRandomString();
+ urlDatabase[id]= {
+   'long_url': req.body.longURL,
+   'user_id': req.cookies['user_id']
+ };
+ res.redirect(`/urls/${id}`);
 });
 
 app.get('/urls/new', (req, res) => {
@@ -120,16 +141,6 @@ app.get('/u/:shortURL', (req, res) => {
   } else {
     res.send('the url does not exist');
   }
-});
-
- //Create a new url pair(short and long) and save it to the urlDatabase
-app.post('/urls', (req, res) => {
-  let id = generateRandomString();
-  urlDatabase[id]= {
-    'long_url': req.body.longURL,
-    'user_id': req.cookies['user_id']
-  };
-  res.redirect(`/urls/${id}`);
 });
 
 app.post('/urls/:id/delete', (req, res) => {
