@@ -39,6 +39,13 @@ function searchUsersByEmail(obj,email) {
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(express.static(__dirname + '/public'));
+app.use('/urls/new', function (req, res, next) {
+  if (!req.cookies['user_id']) {
+    res.redirect('/login')
+  } else {
+    next();
+  }
+})
 
 //=================================****** configure ejs ******====================================
 
