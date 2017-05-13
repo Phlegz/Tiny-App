@@ -80,7 +80,11 @@ app.use(cookieSession({
 }))
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(__dirname + '/public'));
-app.use('/urls', function (req, res, next) {
+app.use((req, res, next) => {
+  res.locals.user = users[req.session.user_id];
+  next();
+})
+app.use('/urls', (req, res, next) => {
   if (!req.session.user_id) {
     //TODO render to error page
     res.redirect('/login');
@@ -97,8 +101,7 @@ app.route('/urls')
   .get((req,res) => {
     let urls = urlsForUser(urlDatabase, req.session.user_id)
     let templateVars = {
-      urls,
-      user: users[req.session.user_id]
+      urls
     };
     res.render('urls_index', templateVars);
   })
@@ -112,14 +115,9 @@ app.route('/urls')
      res.redirect(`/urls/${id}`);
   });
 
-//TODO check res.local in the middleware to make it DRY
 app.get('/urls/new', (req, res) => {
-  let templateVars = {
-    user: users[req.session.user_id]
-  };
-  res.render('urls_new', templateVars);
+  res.render('urls_new');
 });
-
 
 app.route('/urls/:id')
 //TODO guard statemenet, just protect from weird situation on the top
@@ -130,8 +128,7 @@ app.route('/urls/:id')
       if (urlDatabase[req.params.id].user_id == req.session.user_id) {
         let templateVars = {
           shortURL: req.params.id,
-          longURL: urlDatabase[req.params.id].long_url,
-          user: users[req.session.user_id]
+          longURL: urlDatabase[req.params.id].long_url
         };
         res.render('urls_show', templateVars);
       } else {
