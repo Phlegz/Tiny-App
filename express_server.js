@@ -124,28 +124,23 @@ app.route('/urls/:id')
 //check nex({status:404, message:'not found'})
 // anything passed to next is considered error and then we use a error handling middleware(app.use)
   .get((req, res) => {
-    if (req.params.id in urlDatabase) {
-      if (urlDatabase[req.params.id].user_id == req.session.user_id) {
-        let templateVars = {
-          shortURL: req.params.id,
-          longURL: urlDatabase[req.params.id].long_url
-        };
-        res.render('urls_show', templateVars);
-      } else {
-          res.send('You are not allowed to edit a url that you have not created!');
-      }
-    } else {
-        res.status(404);
-        res.send('Requested short URL was not found');
+    if(!(req.params.id in urlDatabase)) {
+      res.status(404).send('Requested short URL was not found');
+      return;
     }
+    if (urlDatabase[req.params.id].user_id !== req.session.user_id) {
+      res.status(404).send('You are not allowed to edit a url that you have not created!');
+      return;
+    }
+    let templateVars = {
+      shortURL: req.params.id,
+      longURL: urlDatabase[req.params.id].long_url
+    };
+    res.render('urls_show', templateVars);
   })
   .post((req, res) => {
     if (req.body.longURL !== urlDatabase[req.params.id].long_url) {
-      //TODO dont reassign the whole obj
-      urlDatabase[req.params.id] = {
-        long_url: req.body.longURL,
-        user_id: req.session.user_id
-      };
+      urlDatabase[req.params.id].long_url = req.body.longURL;
     }
     res.redirect('/urls');
   });
