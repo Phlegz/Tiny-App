@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang='en'>
+
+  <head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Tiny App</title>
+  </head>
+
+  <body>
+    <% include partials/_header %>
+    <% if (!user) { %>
+      <h2>Please login or register</h2>
+    <% } else { %>
+      <% if (status === 404) { %>
+        <h2> <%= message %> </h2>
+      <% } %>
+
+      <% if (status === 401) { %>
+        <h2> <%= message %> </h2>
+      <% } %>
+    <% } %>
+  </body>
+</html>

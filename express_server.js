@@ -35,7 +35,6 @@ const urlDatabase = {
 };
 
 //=================================***** Helper functions *****======================================
-
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 7);
 };
@@ -72,30 +71,36 @@ app.set('view engine', 'ejs');
 
 
 //===============================******* Express middlewares *****==============================
-
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2'],
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}))
+}));
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(express.static(__dirname + '/public'));
 app.use((req, res, next) => {
   res.locals.user = users[req.session.user_id];
   next();
-})
+});
 app.use('/urls', (req, res, next) => {
   if (!req.session.user_id) {
-    //TODO render to error page
-    res.redirect('/login');
+    res.status(401);
+    res.render('error');
   } else {
     next();
   }
-})
+});
 //=============================================================================================
 
 
 //=================================***** Routes *****==========================================
+app.get('/', (req,res) => {
+  if (req.session.user_id) {
+    res.redirect('/urls');
+  } else {
+    res.redirect('/login');
+  }
+});
 
 app.route('/urls')
   .get((req,res) => {
@@ -105,14 +110,13 @@ app.route('/urls')
     };
     res.render('urls_index', templateVars);
   })
-  //Create a new url pair(short and long) and save it to the urlDatabase
   .post((req, res) => {
-     let id = generateRandomString();
-     urlDatabase[id]= {
-       'long_url': req.body.longURL,
-       'user_id': req.session.user_id
-     };
-     res.redirect(`/urls/${id}`);
+    let id = generateRandomString();
+    urlDatabase[id]= {
+     'long_url': req.body.longURL,
+     'user_id': req.session.user_id
+    };
+    res.redirect(`/urls/${id}`);
   });
 
 app.get('/urls/new', (req, res) => {
@@ -120,16 +124,17 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.route('/urls/:id')
-//TODO guard statemenet, just protect from weird situation on the top
-//check nex({status:404, message:'not found'})
-// anything passed to next is considered error and then we use a error handling middleware(app.use)
+//TODO check nex({status:404, message:'not found'})
+// anything passed to next is considered error and then we can use a error handling middleware(app.use)
   .get((req, res) => {
-    if(!(req.params.id in urlDatabase)) {
-      res.status(404).send('Requested short URL was not found');
+    if (!(req.params.id in urlDatabase)) {
+      res.status(404);
+      res.render('error',{status:404, message: 'The requested short URL was not found!'})
       return;
     }
     if (urlDatabase[req.params.id].user_id !== req.session.user_id) {
-      res.status(404).send('You are not allowed to edit a url that you have not created!');
+      res.status(401);
+      res.render('error',{status:401, message: 'You are not allowed to edit/delete a url that you have not created!'})
       return;
     }
     let templateVars = {
@@ -150,7 +155,8 @@ app.get('/u/:shortURL', (req, res) => {
     let longURL = urlDatabase[req.params.shortURL].long_url;
     res.redirect(longURL);
   } else {
-      res.send('the url does not exist');
+      res.status(404)
+      res.render('error', {status:404, message: 'The requested short URL was not found!'})
   }
 });
 
@@ -160,42 +166,48 @@ app.post('/urls/:id/delete', (req, res) => {
     res.redirect('/urls');
   }
   else {
-    res.send('You are not allowed to delete a url that you have not created!')
+    res.status(401);
+    res.render('error', {status: 401, message: 'You are not allowed to edit/delete a url that you have not created!'})
   }
 });
 
 app.route('/register')
   .get((req, res) => {
+    if (req.session.user_id) {
+      res.redirect('/urls');
+      return;
+    }
     res.render('register')
   })
   .post((req, res) => {
-    if (req.body.email && req.body.name && req.body.password) {
-      const user = searchUsersByEmail(users, req.body.email);
-      if (!user) {
-        const password = req.body.password;
-        const hashed_password = bcrypt.hashSync(password, 10);
-        const id = generateRandomString();
-        users[id] = {
-          id: id,
-          email: req.body.email,
-          name: req.body.name,
-          password: hashed_password
-        };
-        req.session.user_id = id
-        // res.cookie('user_id', id);
-        res.redirect('/urls');
-      } else {
-          res.status(400)
-          res.send('user already exist')
-          return;
-      }
+    if (!(req.body.email && req.body.password)) {
+      res.status(400).send('Fields can not be empty');
+    }
+    const user = searchUsersByEmail(users, req.body.email);
+    if (!user) {
+      const password = req.body.password;
+      const hashed_password = bcrypt.hashSync(password, 10);
+      const id = generateRandomString();
+      users[id] = {
+        id: id,
+        email: req.body.email,
+        name: req.body.name,
+        password: hashed_password
+      };
+      req.session.user_id = id
+      res.redirect('/urls');
     } else {
-        res.redirect('/register');
+        res.status(400);
+        res.send('user already exist');
     }
   });
 
 app.route('/login')
   .get((req, res) => {
+    if (req.session.user_id) {
+      res.redirect('/urls');
+      return;
+    }
     res.render('login');
   })
   .post((req, res) => {
@@ -203,22 +215,18 @@ app.route('/login')
     if (user) {
       if (bcrypt.compareSync(req.body.password, user.password)) {
         req.session.user_id = user.id
-        // res.cookie('user_id', user.id);
         res.redirect('/urls');
-        return;
       } else {
-        res.status(403);
-        res.send('incorrect credentials')
+        res.status(403).send('incorrect credentials');
       }
     } else {
-        res.redirect('/register');
+        res.status(403).send('Please register before loggin in')
     }
   });
 
 app.post('/logout', (req, res) => {
-  // res.clearCookie('user_id');
-  req.session = null
-  res.redirect('/login');
+  req.session = null;
+  res.redirect('/urls')
 });
 //=========================================================================================================
 
