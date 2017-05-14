@@ -9,7 +9,7 @@
 
   <body>
     <header>
-    <% include ./partials/_header %>
+      <% include ./partials/_header %>
     </header>
     <h1>Tiny App</h1>
     <form action='/urls/new'>
@@ -18,7 +18,9 @@
     <ul>
       <% for(var item in urls) { %>
         <li>
-          <p>  <%= urls[item].long_url %> =======> <a href="http://localhost:8080/u/<%= item %>">www.tinyapp.<%= item %></a></p>
+          <p>
+            <%= urls[item].long_url %> =======> <a href="http://localhost:8080/u/<%= item %>">www.tinyapp.<%= item %></a>
+          </p>
           <form action='/urls/<%= item %>'>
             <input type='submit' value='Edit'>
           </form>

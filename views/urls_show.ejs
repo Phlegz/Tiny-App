@@ -9,9 +9,9 @@
 
   <body>
     <header>
-    <% include ./partials/_header %>
+      <% include ./partials/_header %>
     </header>
-    <h2>Short URL: <%= shortURL %></h2>
+    <h2>Short URL: <%= shortURL %> </h2>
     <h3>Update this short URL</h3>
     <form action='/urls/<%= shortURL %>' method='post'>
       <input id='longURL' name='longURL' value='<%= longURL %>'>
