@@ -115,9 +115,11 @@ app.route('/urls')
     res.render('urls_index', templateVars);
   })
   .post((req, res) => {
+    const dateCreated = new Date().toLocaleString();
     const id = generateRandomString();
     urlDatabase[id]= {
      'long_url': req.body.longURL,
+     'date_created': dateCreated,
      'user_id': req.session.user_id
     };
     res.redirect(`/urls/${id}`);
