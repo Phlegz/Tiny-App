@@ -33,7 +33,7 @@ const urlDatabase = {
 //=================================***** Helper functions *****======================================
 function generateRandomString() {
   return Math.random().toString(36).substr(2, 7);
-};
+}
 
 /**
 @param {Object} users
@@ -46,7 +46,7 @@ function searchUsersByEmail(users, email) {
     }
   }
   return false;
-};
+}
 
 /**
 @param {Object} urlDatabase
@@ -130,17 +130,15 @@ app.get('/urls/new', (req, res) => {
 });
 
 app.route('/urls/:id')
-//TODO check nex({status:404, message:'not found'})
-// anything passed to next is considered error and then we can use a error handling middleware(app.use)
   .get((req, res) => {
     if (!(req.params.id in urlDatabase)) {
         res.status(404);
-        res.render('error',{status:404, message: 'The requested short URL was not found!'})
+        res.render('error',{status:404, message: 'The requested short URL was not found!'});
         return;
     }
     if (urlDatabase[req.params.id].user_id !== req.session.user_id) {
         res.status(401);
-        res.render('error',{status:401, message: 'You are not allowed to edit/delete a url that you have not created!'})
+        res.render('error',{status:401, message: 'You are not allowed to edit/delete a url that you have not created!'});
         return;
     }
     const templateVars = {
@@ -182,7 +180,7 @@ app.route('/register')
         res.redirect('/urls');
         return;
     }
-    res.render('register')
+    res.render('register');
   })
   .post((req, res) => {
     if (!(req.body.email && req.body.password)) {
@@ -199,7 +197,7 @@ app.route('/register')
           name: req.body.name,
           password: hashed_password
         };
-        req.session.user_id = id
+        req.session.user_id = id;
         res.redirect('/urls');
     } else {
         res.status(400);
@@ -216,10 +214,10 @@ app.route('/login')
     res.render('login');
   })
   .post((req, res) => {
-    const user = searchUsersByEmail(users,req.body.email)
+    const user = searchUsersByEmail(users,req.body.email);
     if (user) {
         if (bcrypt.compareSync(req.body.password, user.password)) {
-            req.session.user_id = user.id
+            req.session.user_id = user.id;
             res.redirect('/urls');
         } else {
             res.status(403).send('incorrect credentials');
@@ -231,7 +229,7 @@ app.route('/login')
 
 app.post('/logout', (req, res) => {
   req.session = null;
-  res.redirect('/urls')
+  res.redirect('/urls');
 });
 //=========================================================================================================
 
