@@ -1,9 +1,9 @@
 
-var cookieSession = require('cookie-session');
-const express = require('express');
-const bodyParser = require('body-parser');
-const bcrypt = require('bcrypt');
-const PORT = process.env.PORT || 8080;
+const cookieSession = require('cookie-session');
+const express       = require('express');
+const bodyParser    = require('body-parser');
+const bcrypt        = require('bcrypt');
+const PORT          = process.env.PORT || 8080;
 
 //users and urlDatabase objects have been populated with some example data to demonstrate the format of data being saved to them
 const users = {
@@ -29,6 +29,39 @@ const urlDatabase = {
      'user_id': 'user2RandomID'
     }
 };
+
+//===============================***** Start the express app ******=============================
+const app = express();
+//==============================================================================================
+
+
+//=================================****** Configure ejs ******==================================
+app.set('view engine', 'ejs');
+//==============================================================================================
+
+
+//===============================******* Express middlewares *****==============================
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2'],
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(express.static(__dirname + '/public'));
+app.use((req, res, next) => {
+  res.locals.user = users[req.session.user_id];
+  next();
+});
+app.use('/urls', (req, res, next) => {
+  if (!req.session.user_id) {
+      res.status(401);
+      res.render('error');
+  } else {
+      next();
+  }
+});
+//=============================================================================================
+
 
 //=================================***** Helper functions *****======================================
 function generateRandomString() {
@@ -62,39 +95,6 @@ function urlsForUser(urlDatabase, userId) {
   return urls;
 }
 //==============================================================================================
-
-
-//===============================***** Start the express app ******=============================
-const app = express();
-//==============================================================================================
-
-
-//=================================****** Configure ejs ******==================================
-app.set('view engine', 'ejs');
-//==============================================================================================
-
-
-//===============================******* Express middlewares *****==============================
-app.use(cookieSession({
-  name: 'session',
-  keys: ['key1', 'key2'],
-  maxAge: 24 * 60 * 60 * 1000 // 24 hours
-}));
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(express.static(__dirname + '/public'));
-app.use((req, res, next) => {
-  res.locals.user = users[req.session.user_id];
-  next();
-});
-app.use('/urls', (req, res, next) => {
-  if (!req.session.user_id) {
-      res.status(401);
-      res.render('error');
-  } else {
-      next();
-  }
-});
-//=============================================================================================
 
 
 //=================================***** Routes *****==========================================
